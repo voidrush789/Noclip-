@@ -1,0 +1,109 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+-- ANTI-STACK CHECK
+local guiName = "WallWalkGui_Unique"
+if player.PlayerGui:FindFirstChild(guiName) then
+    player.PlayerGui[guiName]:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = guiName
+screenGui.IgnoreGuiInset = true 
+screenGui.DisplayOrder = 9999 
+screenGui.ResetOnSpawn = false 
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- MAIN PANEL (Restored to 120x60)
+local mainPanel = Instance.new("Frame")
+mainPanel.Name = "MainPanel"
+mainPanel.Size = UDim2.new(0, 120, 0, 60) 
+mainPanel.Position = UDim2.new(0.5, -60, 0, 60) 
+mainPanel.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+mainPanel.BackgroundTransparency = 0.2
+mainPanel.BorderSizePixel = 0 
+mainPanel.Visible = false 
+mainPanel.Parent = screenGui
+Instance.new("UICorner", mainPanel).CornerRadius = UDim.new(0, 10)
+
+-- NOCLIP BUTTON (Restored size and position)
+local noclipBtn = Instance.new("TextButton")
+noclipBtn.Name = "NoclipBtn"
+noclipBtn.Size = UDim2.new(0, 90, 0, 30)
+noclipBtn.Position = UDim2.new(0.5, -45, 0.5, -15)
+noclipBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 75)
+noclipBtn.BackgroundTransparency = 0.3
+noclipBtn.Text = "Noclip: OFF"
+noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+noclipBtn.Font = Enum.Font.GothamBold
+noclipBtn.TextSize = 11
+noclipBtn.BorderSizePixel = 0
+noclipBtn.Parent = mainPanel
+Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 8)
+
+-- PANEL TOGGLE BUTTON (The small icon)
+local toggleBtn = Instance.new("ImageButton")
+toggleBtn.Name = "Toggle"
+toggleBtn.Size = UDim2.new(0, 30, 0, 30) 
+toggleBtn.Position = UDim2.new(0.5, 20, 0, 15) 
+toggleBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+toggleBtn.BackgroundTransparency = 0.5
+toggleBtn.Image = "rbxassetid://108477645646751"
+toggleBtn.BorderSizePixel = 0 
+toggleBtn.Parent = screenGui
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
+
+-----------------------------------------------------------
+-- OPTIMIZED NOCLIP LOGIC
+-----------------------------------------------------------
+local noclipEnabled = false
+local ncConnection = nil
+
+local function toggleNoclip()
+    if ncConnection then ncConnection:Disconnect() end
+    
+    ncConnection = RunService.Stepped:Connect(function()
+        if noclipEnabled then
+            local char = player.Character
+            if char then
+                for _, v in pairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        else
+            if ncConnection then
+                ncConnection:Disconnect()
+                ncConnection = nil
+            end
+        end
+    end)
+end
+
+-- Button Logic
+noclipBtn.MouseButton1Click:Connect(function()
+    noclipEnabled = not noclipEnabled
+    
+    if noclipEnabled then
+        noclipBtn.Text = "Noclip: ON"
+        noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        toggleNoclip()
+    else
+        noclipBtn.Text = "Noclip: OFF"
+        noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    end
+end)
+
+-- Visibility Logic
+toggleBtn.MouseButton1Click:Connect(function()
+    mainPanel.Visible = not mainPanel.Visible
+end)
+
+-- Death Cleanup
+player.CharacterAdded:Connect(function()
+    noclipEnabled = false
+    noclipBtn.Text = "Noclip: OFF"
+    noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+end)
