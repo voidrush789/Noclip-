@@ -15,7 +15,6 @@ screenGui.DisplayOrder = 9999
 screenGui.ResetOnSpawn = false 
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- MAIN PANEL (Restored to 120x60)
 local mainPanel = Instance.new("Frame")
 mainPanel.Name = "MainPanel"
 mainPanel.Size = UDim2.new(0, 120, 0, 60) 
@@ -27,7 +26,6 @@ mainPanel.Visible = false
 mainPanel.Parent = screenGui
 Instance.new("UICorner", mainPanel).CornerRadius = UDim.new(0, 10)
 
--- NOCLIP BUTTON (Restored size and position)
 local noclipBtn = Instance.new("TextButton")
 noclipBtn.Name = "NoclipBtn"
 noclipBtn.Size = UDim2.new(0, 90, 0, 30)
@@ -42,7 +40,6 @@ noclipBtn.BorderSizePixel = 0
 noclipBtn.Parent = mainPanel
 Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 8)
 
--- PANEL TOGGLE BUTTON (The small icon)
 local toggleBtn = Instance.new("ImageButton")
 toggleBtn.Name = "Toggle"
 toggleBtn.Size = UDim2.new(0, 30, 0, 30) 
@@ -55,10 +52,27 @@ toggleBtn.Parent = screenGui
 Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
 
 -----------------------------------------------------------
--- OPTIMIZED NOCLIP LOGIC
+-- REPAIRED LOGIC
 -----------------------------------------------------------
 local noclipEnabled = false
 local ncConnection = nil
+
+local function resetPhysics()
+    local char = player.Character
+    if char then
+        -- Force collision back on for everything
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = true
+            end
+        end
+        -- Reset rotation to stop wall walking leftover effects
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = CFrame.new(hrp.Position) 
+        end
+    end
+end
 
 local function toggleNoclip()
     if ncConnection then ncConnection:Disconnect() end
@@ -74,15 +88,16 @@ local function toggleNoclip()
                 end
             end
         else
+            -- If turned off, kill the loop and reset physics immediately
             if ncConnection then
                 ncConnection:Disconnect()
                 ncConnection = nil
+                resetPhysics()
             end
         end
     end)
 end
 
--- Button Logic
 noclipBtn.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
     
@@ -93,17 +108,18 @@ noclipBtn.MouseButton1Click:Connect(function()
     else
         noclipBtn.Text = "Noclip: OFF"
         noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        -- This ensures you don't stay "stuck" on a wall after turning it off
+        resetPhysics() 
     end
 end)
 
--- Visibility Logic
 toggleBtn.MouseButton1Click:Connect(function()
     mainPanel.Visible = not mainPanel.Visible
 end)
 
--- Death Cleanup
 player.CharacterAdded:Connect(function()
     noclipEnabled = false
     noclipBtn.Text = "Noclip: OFF"
     noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    resetPhysics()
 end)
